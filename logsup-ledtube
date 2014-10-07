@@ -1,0 +1,65 @@
+#!/bin/sh
+
+### BEGIN INIT INFO
+# Provides:             ledtube
+# Required-Start:       $syslog $network
+# Required-Stop:        $syslog
+# Default-Start:        2 3 4 5
+# Default-Stop:         0 1 6
+# Short-Description:    Python service for pre-programmed LEDs
+# Description:          Python service for outputting pre-programmed sequences to tri-color leds
+### END INIT INFO
+
+PATH=/bin:/sbin:/usr/bin
+DAEMON=/mnt/boot/ledtube/ledtube.py
+NAME=ledtube
+DESC=ledtube
+
+USER=root
+PIDFILE=/var/run/$NAME.pid
+case "${1}" in
+    start)
+        echo -n "Starting ${DESC}: "
+        mkdir -p /mnt/boot
+        if [ ! -e ${DAEMON} ]
+            then mount -t vfat /dev/mmcblk0p1 /mnt/boot
+        fi
+           
+        start-stop-daemon --start --quiet --pidfile ${PIDFILE} \
+            --chuid ${USER} --background \
+            --exec ${DAEMON}
+        ;;
+
+    stop)
+        echo -n "Stopping ${DESC}: "
+        start-stop-daemon --stop --quiet --pidfile ${PIDFILE} \
+            --oknodo
+        kill -9 $(pgrep ledtube.py)
+
+        echo "${NAME}."
+        ;;
+
+    restart|force-reload)
+        echo -n "Restarting ${DESC}: "
+        start-stop-daemon --stop --quiet --pidfile ${PIDFILE} \
+            --oknodo
+        sleep 1
+        mkdir -p /mnt/boot
+        if [ ! -e ${DAEMON} ]
+            then mount -t vfat /dev/mmcblk0p1 /mnt/boot
+            else
+                start-stop-daemon --start --quiet --pidfile ${PIDFILE} \
+                --chuid ${USER} --background \
+                --exec ${DAEMON}
+        fi
+        echo "${NAME}."
+        ;;
+
+    *)
+        N=/etc/init.d/${NAME}
+        echo "Usage: ${NAME} {start|stop|restart|force-reload}" >&2
+        exit 1
+        ;;
+esac
+
+exit 0
